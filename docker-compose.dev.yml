@@ -1,0 +1,23 @@
+services:
+  postgres:
+    ports:
+      - "5432:5432"
+
+  postgres-notifications:
+    ports:
+      - "5433:5432"
+
+  redis:
+    ports:
+      - "6379:6379"
+
+  rabbitmq:
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  api-gateway:
+    ports:
+      - "8000:8000"
+    environment:
+      LOG_LEVEL: DEBUG
