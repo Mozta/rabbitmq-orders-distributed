@@ -25,7 +25,8 @@ graph TB
         end
 
         Redis[("Redis (:6379)\nEstado de ordenes")]
-        Postgres[("PostgreSQL (:5432)\nPersistencia + Inventario")]
+        Postgres[("PostgreSQL (:5432)\nOrdenes + Inventario")]
+        PostgresNotif[("PostgreSQL (:5433)\nNotificaciones")]
     end
 
     Client -->|HTTP| POST
@@ -43,6 +44,8 @@ graph TB
 
     Writer -->|Upsert orden| Postgres
     Writer -->|"SET status=PERSISTED\no REJECTED"| Redis
+
+    Notification -->|Persiste notificación| PostgresNotif
 ```
 
 ## Diagrama de secuencia
@@ -58,7 +61,8 @@ sequenceDiagram
     participant Inv as Inventory Service
     participant Writer as Writer Service
     participant Notif as Notification Service
-    participant PG as PostgreSQL
+    participant PG as PostgreSQL (ordenes)
+    participant PGN as PostgreSQL (notif)
 
     Client->>+GW: POST /orders {customer, items}
     GW->>GW: Genera order_id (UUID)
@@ -80,7 +84,7 @@ sequenceDiagram
             Writer-->>-RMQ: ACK
         and
             RMQ->>Notif: order.stock_confirmed (auto_ack)
-            Notif->>Notif: Log confirmacion al cliente
+            Notif->>PGN: INSERT notificación (confirmación)
         end
     else Stock insuficiente
         Inv->>RMQ: Publish order.stock_rejected
@@ -92,7 +96,7 @@ sequenceDiagram
             Writer-->>-RMQ: ACK
         and
             RMQ->>Notif: order.stock_rejected (auto_ack)
-            Notif->>Notif: Log rechazo al cliente
+            Notif->>PGN: INSERT notificación (rechazo)
         end
     end
 ```
@@ -185,8 +189,9 @@ Respuesta (orden rechazada por stock):
 | **api-gateway** | 8000 | Punto de entrada HTTP. Recibe ordenes, guarda estado en Redis y publica `order.created` a RabbitMQ |
 | **inventory-service** | — | Consumidor bloqueante (pika). Valida y descuenta stock, publica `order.stock_confirmed` u `order.stock_rejected` |
 | **writer-service** | — | Consumidor async (aio-pika). Persiste ordenes en PostgreSQL y actualiza el estado en Redis (`PERSISTED`/`REJECTED`) |
-| **notification-service** | — | Consumidor bloqueante (pika). Registra la notificacion de confirmacion o rechazo al cliente |
-| **PostgreSQL** | 5432 | Base de datos relacional para persistencia de ordenes |
+| **notification-service** | — | Consumidor bloqueante (pika). Persiste notificaciones en su propia BD y registra confirmacion o rechazo |
+| **PostgreSQL (ordenes)** | 5432 | Base de datos para ordenes e inventario (writer-service, inventory-service) |
+| **PostgreSQL (notificaciones)** | 5433 | Base de datos exclusiva de notification-service (database-per-service) |
 | **Redis** | 6379 | Cache de estado de ordenes |
 | **RabbitMQ** | 5672 / 15672 | Message broker. UI de administracion en `http://localhost:15672` (guest/guest) |
 
@@ -218,7 +223,10 @@ rabbitmq-orders-distributed/
 │       ├── db.py                   # Motor SQLAlchemy sync
 │       └── models.py              # Modelo ORM Product (stock)
 └── notification-service/
-    └── app/main.py                 # Consumer pika bloqueante
+    └── app/
+        ├── main.py                 # Consumer pika + persistencia
+        ├── db.py                   # Motor SQLAlchemy sync (postgres-notifications)
+        └── models.py              # Modelo ORM Notification
 ```
 
 ## Variables de entorno
@@ -233,6 +241,9 @@ Definidas en `.env` (copiar desde `.env.example`):
 | `DATABASE_URL` | URL de conexion async para SQLAlchemy (`postgresql+asyncpg://...`) |
 | `REDIS_URL` | URL de conexion a Redis |
 | `RABBITMQ_URL` | URL AMQP de conexion a RabbitMQ |
+| `NOTIFICATIONS_DB_USER` | Usuario de PostgreSQL para notificaciones |
+| `NOTIFICATIONS_DB_PASSWORD` | Contrasena de PostgreSQL para notificaciones |
+| `NOTIFICATIONS_DB_NAME` | Nombre de la base de datos de notificaciones |
 
 ## Comandos utiles
 
@@ -242,6 +253,10 @@ docker compose up --build api-gateway
 
 # Ver logs de un servicio
 docker compose logs -f writer-service
+
+# Ver notificaciones guardadas en la BD de notificaciones
+docker compose exec postgres-notifications \
+  psql -U notif_user -d notifications_db -c "SELECT * FROM notifications;"
 
 # Detener todos los servicios y eliminar volumenes
 docker compose down -v

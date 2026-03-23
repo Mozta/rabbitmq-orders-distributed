@@ -15,6 +15,22 @@ services:
       interval: 5s
       retries: 5
 
+  # ── Base de datos de notificaciones ──────────────────────
+  postgres-notifications:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${NOTIFICATIONS_DB_USER}
+      POSTGRES_PASSWORD: ${NOTIFICATIONS_DB_PASSWORD}
+      POSTGRES_DB: ${NOTIFICATIONS_DB_NAME}
+    ports:
+      - "5433:5432"
+    volumes:
+      - pg_notifications_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${NOTIFICATIONS_DB_USER} -d ${NOTIFICATIONS_DB_NAME}"]
+      interval: 5s
+      retries: 5
+
   # ── Caché de estado ───────────────────────────────────────
   redis:
     image: redis:7-alpine
@@ -72,14 +88,17 @@ services:
       rabbitmq:
         condition: service_healthy
 
-  # ── Consumidor: envía notificaciones ──────────────────────
+  # ── Consumidor: persiste y envía notificaciones ───────────
   notification-service:
     build: ./notification-service
     env_file: .env
     restart: on-failure
     depends_on:
+      postgres-notifications:
+        condition: service_healthy
       rabbitmq:
         condition: service_healthy
 
 volumes:
   pg_data:
+  pg_notifications_data:

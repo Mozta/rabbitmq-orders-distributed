@@ -1,4 +1,4 @@
-"""Notification Service – consumer de RabbitMQ que envía confirmaciones."""
+"""Notification Service – consumer de RabbitMQ que persiste y envía notificaciones."""
 
 import json
 import logging
@@ -6,33 +6,52 @@ import os
 
 import pika
 
+from .db import SessionLocal, init_db
+from .models import Notification
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 logger = logging.getLogger("notification-service")
 
 RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://guest:guest@rabbitmq:5672/")
 
 
+def save_notification(order_id: str, customer: str, event_type: str, message: str, reason: str | None = None) -> None:
+    """Persiste una notificación en la base de datos."""
+    with SessionLocal() as session:
+        notification = Notification(
+            order_id=order_id,
+            customer=customer,
+            event_type=event_type,
+            message=message,
+            reason=reason,
+        )
+        session.add(notification)
+        session.commit()
+        logger.info("Notificación guardada en BD para orden %s", order_id)
+
+
 def callback(ch, method, properties, body):
     order = json.loads(body)
     event = order.get("event", "")
+    order_id = order["order_id"]
+    customer = order["customer"]
+
     if event == "STOCK_CONFIRMED":
+        message = f"Orden {order_id} confirmada para cliente '{customer}'"
         # TODO: implementar envío real de notificación (email, SMS, push, etc.)
-        logger.info(
-            "Notificación: confirmación enviada al cliente '%s' para orden %s",
-            order["customer"],
-            order["order_id"],
-        )
+        logger.info("Notificación: confirmación enviada al cliente '%s' para orden %s", customer, order_id)
+        save_notification(order_id, customer, event, message)
+
     elif event == "STOCK_REJECTED":
+        reason = order.get("reason", "")
+        message = f"Orden {order_id} rechazada para cliente '{customer}'"
         # TODO: implementar envío real de notificación de rechazo
-        logger.info(
-            "Notificación: orden %s rechazada para cliente '%s' – %s",
-            order["order_id"],
-            order["customer"],
-            order.get("reason", ""),
-        )
+        logger.info("Notificación: orden %s rechazada para cliente '%s' – %s", order_id, customer, reason)
+        save_notification(order_id, customer, event, message, reason)
 
 
 def main() -> None:
+    init_db()
     params = pika.URLParameters(RABBITMQ_URL)
     connection = pika.BlockingConnection(params)
     channel = connection.channel()
