@@ -1,0 +1,85 @@
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: admin         
+      POSTGRES_PASSWORD: admin123  
+      POSTGRES_DB: orders_db
+    ports:
+      - "5432:5432"                
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
+  postgres-notifications:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: admin         
+      POSTGRES_PASSWORD: admin123
+      POSTGRES_DB: notifications_db
+    ports:
+      - "5433:5432"                
+    volumes:
+      - pg_notifications_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"                
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"                
+      - "15672:15672"              
+
+  api-gateway:
+    build: ./api-gateway
+    ports:
+      - "8000:8000"
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+      POSTGRES_DB: orders_db
+      DATABASE_URL: postgresql+asyncpg://admin:admin123@postgres:5432/orders_db
+      REDIS_URL: redis://redis:6379/0
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      LOG_LEVEL: DEBUG             
+    depends_on:
+      - redis
+      - rabbitmq
+
+  writer-service:
+    build: ./writer-service
+    environment:
+      DATABASE_URL: postgresql+asyncpg://admin:admin123@postgres:5432/orders_db
+      REDIS_URL: redis://redis:6379/0
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+
+  inventory-service:
+    build: ./inventory-service
+    environment:
+      DATABASE_URL: postgresql+asyncpg://admin:admin123@postgres:5432/orders_db
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+    depends_on:
+      - postgres
+      - rabbitmq
+
+  notification-service:
+    build: ./notification-service
+    environment:
+      NOTIFICATIONS_DB_USER: admin
+      NOTIFICATIONS_DB_PASSWORD: admin123
+      NOTIFICATIONS_DB_NAME: notifications_db
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+    depends_on:
+      - postgres-notifications
+      - rabbitmq
+
+volumes:
+  pg_data:
+  pg_notifications_data:

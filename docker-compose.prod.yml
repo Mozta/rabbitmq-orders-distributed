@@ -11,21 +11,21 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256M
+          memory: 512M
 
   inventory-service:
     restart: always
     deploy:
       resources:
         limits:
-          memory: 256M
+          memory: 512M
 
   notification-service:
     restart: always
     deploy:
       resources:
         limits:
-          memory: 256M
+          memory: 512M
 
   postgres:
     restart: always

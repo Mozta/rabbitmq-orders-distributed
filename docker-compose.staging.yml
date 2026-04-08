@@ -9,7 +9,7 @@ services:
     restart: unless-stopped
 
   inventory-service:
-    restart: unless-stopped
+     restart: unless-stopped
 
   notification-service:
-    restart: unless-stopped
+     restart: unless-stopped
