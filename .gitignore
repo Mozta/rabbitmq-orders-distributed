@@ -31,3 +31,8 @@ Thumbs.db
 
 # Docker volumes
 pg_data/
+
+# Local teaching notes / deploy guides (not for the repo)
+README-deploy.md
+docs/
+
