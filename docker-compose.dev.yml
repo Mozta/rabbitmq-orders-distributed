@@ -7,6 +7,10 @@ services:
     ports:
       - "5433:5432"
 
+  postgres-auth:
+    ports:
+      - "5434:5432"
+
   redis:
     ports:
       - "6379:6379"
@@ -19,5 +23,11 @@ services:
   api-gateway:
     ports:
       - "8000:8000"
+    environment:
+      LOG_LEVEL: DEBUG
+
+  auth-service:
+    ports:
+      - "8001:8000"
     environment:
       LOG_LEVEL: DEBUG

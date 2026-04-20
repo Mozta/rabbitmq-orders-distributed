@@ -27,6 +27,20 @@ services:
       interval: 5s
       retries: 5
 
+  # ── Base de datos de autenticación ───────────────────────
+  postgres-auth:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${AUTH_DB_USER}
+      POSTGRES_PASSWORD: ${AUTH_DB_PASSWORD}
+      POSTGRES_DB: ${AUTH_DB_NAME}
+    volumes:
+      - pg_auth_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${AUTH_DB_USER} -d ${AUTH_DB_NAME}"]
+      interval: 5s
+      retries: 5
+
   # ── Caché de estado ───────────────────────────────────────
   redis:
     image: redis:7-alpine
@@ -88,6 +102,20 @@ services:
       rabbitmq:
         condition: service_healthy
 
+  # ── Servicio de autenticación (JWT RS256) ─────────────────
+  auth-service:
+    build: ./auth-service
+    env_file: ${ENV_FILE:-.env.dev}
+    volumes:
+      - auth_keys:/app/keys
+    depends_on:
+      postgres-auth:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
 volumes:
   pg_data:
   pg_notifications_data:
+  pg_auth_data:
+  auth_keys:
