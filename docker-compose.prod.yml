@@ -33,6 +33,18 @@ services:
   postgres-notifications:
     restart: always
 
+  postgres-auth:
+    restart: always
+
+  auth-service:
+    restart: always
+    environment:
+      LOG_LEVEL: WARNING
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
   redis:
     restart: always
 
