@@ -66,6 +66,8 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      auth-service:
+        condition: service_healthy
 
   # ── Consumidor: persiste órdenes en Postgres ──────────────
   writer-service:
@@ -108,6 +110,10 @@ services:
     env_file: ${ENV_FILE:-.env.dev}
     volumes:
       - auth_keys:/app/keys
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 5s
+      retries: 5
     depends_on:
       postgres-auth:
         condition: service_healthy

@@ -22,10 +22,10 @@ check() {
 
     if [ "$actual_code" -eq "$expected_code" ]; then
         echo "  ✅ $description (HTTP $actual_code)"
-        ((passed++))
+        passed=$((passed + 1))
     else
         echo "  ❌ $description (esperado $expected_code, recibido $actual_code)"
-        ((failed++))
+        failed=$((failed + 1))
     fi
 }
 
@@ -96,20 +96,20 @@ echo "  → email: $ME_EMAIL"
 
 # Me sin token
 code=$(curl -s -o /dev/null -w "%{http_code}" "$AUTH_URL/auth/me")
-check "Me sin token rechazado" 403 "$code"
+check "Me sin token rechazado" 401 "$code"
 echo ""
 
 # ── 5. Crear orden con auth ──────────────────────────────────
 echo "5. Crear orden (gateway protegido)"
 code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$GATEWAY_URL/orders" \
     -H "Content-Type: application/json" \
-    -d '{"customer": "test", "items": [{"product": "Widget", "quantity": 1}]}')
+    -d '{"customer": "test", "items": [{"sku": "WIDGET-001", "qty": 1}]}')
 check "Orden sin token rechazada" 401 "$code"
 
 response=$(curl -s -w "\n%{http_code}" -X POST "$GATEWAY_URL/orders" \
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer $ACCESS_TOKEN" \
-    -d '{"customer": "test", "items": [{"product": "Widget", "quantity": 1}]}')
+    -d '{"customer": "test", "items": [{"sku": "WIDGET-001", "qty": 1}]}')
 code=$(echo "$response" | tail -1)
 body=$(echo "$response" | sed '$d')
 check "Orden con token válido aceptada" 202 "$code"

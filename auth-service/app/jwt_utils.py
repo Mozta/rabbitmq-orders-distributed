@@ -43,7 +43,7 @@ def _ensure_keys() -> None:
         format=serialization.PrivateFormat.PKCS8,
         encryption_algorithm=serialization.NoEncryption(),
     )
-    _public_key = key.public_bytes(
+    _public_key = key.public_key().public_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PublicFormat.SubjectPublicKeyInfo,
     )
