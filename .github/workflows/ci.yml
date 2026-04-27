@@ -15,13 +15,14 @@ jobs:
             - name: Checkout code
               uses: actions/checkout@v4
 
+            - name: Prepare env file
+              run: cp .env.example .env
+
             - name: Build all services
-              run: docker compose build
+              run: docker compose --env-file .env build
 
             - name: Start services
-              run: |
-                  cp .env.example .env
-                  docker compose -f docker-compose.yml -f docker-compose.dev.yml --env-file .env up --build -d
+              run: docker compose -f docker-compose.yml -f docker-compose.dev.yml --env-file .env up --build -d
 
             - name: Wait for services to be healthy
               run: |
@@ -47,8 +48,8 @@ jobs:
 
             - name: Show logs on failure
               if: failure()
-              run: docker compose logs --tail=100
+              run: docker compose --env-file .env logs --tail=100
 
             - name: Cleanup
               if: always()
-              run: docker compose down -v
+              run: docker compose --env-file .env down -v
