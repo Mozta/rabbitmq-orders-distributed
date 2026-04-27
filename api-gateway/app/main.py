@@ -15,7 +15,9 @@ from .rabbitmq_publisher import publish_order
 from .redis_client import get_redis
 from .schemas import OrderCreated, OrderIn, OrderStatus
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s"
+)
 logger = logging.getLogger("api-gateway")
 
 
@@ -41,7 +43,9 @@ async def create_order(
     now = datetime.now(timezone.utc).isoformat()
     user_id = user["sub"]
 
-    logger.info("Nueva orden %s de user=%s [request_id=%s]", order_id, user_id, request_id)
+    logger.info(
+        "Nueva orden %s de user=%s [request_id=%s]", order_id, user_id, request_id
+    )
 
     # 1. Guardar estado inicial en Redis como RECEIVED
     r = get_redis()

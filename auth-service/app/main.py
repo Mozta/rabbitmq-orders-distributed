@@ -12,7 +12,9 @@ from .db import init_db
 from .jwt_utils import _ensure_keys
 from .routes import router
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s"
+)
 logger = logging.getLogger("auth-service")
 
 

@@ -6,7 +6,9 @@ import os
 
 import pika
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s"
+)
 logger = logging.getLogger("notification-service")
 
 RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://guest:guest@rabbitmq:5672/")
@@ -38,8 +40,14 @@ def main() -> None:
     channel = connection.channel()
     channel.exchange_declare(exchange="orders", exchange_type="topic")
     result = channel.queue_declare(queue="", exclusive=True)
-    channel.queue_bind(exchange="orders", queue=result.method.queue, routing_key="order.stock_confirmed")
-    channel.queue_bind(exchange="orders", queue=result.method.queue, routing_key="order.stock_rejected")
+    channel.queue_bind(
+        exchange="orders",
+        queue=result.method.queue,
+        routing_key="order.stock_confirmed",
+    )
+    channel.queue_bind(
+        exchange="orders", queue=result.method.queue, routing_key="order.stock_rejected"
+    )
     channel.basic_consume(
         queue=result.method.queue,
         on_message_callback=callback,

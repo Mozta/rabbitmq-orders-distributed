@@ -22,9 +22,7 @@ async def upsert_order(
 
     Retorna True si se insertó una nueva fila, False si ya existía.
     """
-    existing = await session.execute(
-        select(Order).where(Order.order_id == order_id)
-    )
+    existing = await session.execute(select(Order).where(Order.order_id == order_id))
     if existing.scalar_one_or_none() is not None:
         logger.info("La orden %s ya existe – omitiendo inserción duplicada", order_id)
         return False

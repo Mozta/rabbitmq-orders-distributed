@@ -14,7 +14,9 @@ from .db import async_session, init_db
 from .redis_client import get_redis
 from .repositories.orders_repo import upsert_order
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s"
+)
 logger = logging.getLogger("writer-service")
 
 
@@ -43,7 +45,11 @@ async def handle_order(message: aio_pika.IncomingMessage) -> None:
                 reason = body.get("reason", "Stock insuficiente")
                 await r.hset(
                     f"order:{order_id}",
-                    mapping={"status": "REJECTED", "last_update": now, "reason": reason},
+                    mapping={
+                        "status": "REJECTED",
+                        "last_update": now,
+                        "reason": reason,
+                    },
                 )
                 logger.info("Orden %s rechazada: %s", order_id, reason)
         except Exception as exc:

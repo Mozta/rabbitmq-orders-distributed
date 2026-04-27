@@ -40,9 +40,7 @@ bearer_scheme = HTTPBearer()
 async def signup(body: SignupRequest):
     async with async_session() as session:
         # Verificar si el email ya existe
-        existing = await session.execute(
-            select(User).where(User.email == body.email)
-        )
+        existing = await session.execute(select(User).where(User.email == body.email))
         if existing.scalar_one_or_none():
             raise HTTPException(status_code=409, detail="Email already registered")
 
@@ -61,9 +59,7 @@ async def signup(body: SignupRequest):
 @router.post("/login", response_model=TokenResponse)
 async def login(body: LoginRequest):
     async with async_session() as session:
-        result = await session.execute(
-            select(User).where(User.email == body.email)
-        )
+        result = await session.execute(select(User).where(User.email == body.email))
         user = result.scalar_one_or_none()
 
     if not user or not verify_password(body.password, user.password_hash):

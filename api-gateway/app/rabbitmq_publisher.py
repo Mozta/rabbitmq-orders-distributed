@@ -17,9 +17,7 @@ async def publish_order(payload: dict) -> None:
     connection = await aio_pika.connect_robust(settings.rabbitmq_url)
     async with connection:
         channel = await connection.channel()
-        exchange = await channel.declare_exchange(
-            "orders", aio_pika.ExchangeType.TOPIC
-        )
+        exchange = await channel.declare_exchange("orders", aio_pika.ExchangeType.TOPIC)
         message = aio_pika.Message(
             body=json.dumps(payload).encode(),
             content_type="application/json",

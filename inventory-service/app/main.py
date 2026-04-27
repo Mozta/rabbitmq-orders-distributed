@@ -9,7 +9,9 @@ import pika
 from .db import SessionLocal, init_db
 from .models import Product
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s"
+)
 logger = logging.getLogger("inventory-service")
 
 RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://guest:guest@rabbitmq:5672/")
@@ -25,7 +27,9 @@ def validate_and_deduct_stock(order_id: str, items: list[dict]) -> tuple[bool, s
         for item in items:
             sku = item["sku"]
             qty = item.get("qty", 1)
-            product = session.query(Product).filter_by(sku=sku).with_for_update().first()
+            product = (
+                session.query(Product).filter_by(sku=sku).with_for_update().first()
+            )
             if product is None:
                 session.rollback()
                 reason = f"SKU {sku} no encontrado en inventario"
@@ -42,7 +46,10 @@ def validate_and_deduct_stock(order_id: str, items: list[dict]) -> tuple[bool, s
             product.stock -= qty
             logger.info(
                 "Orden %s – SKU %s: stock %d → %d",
-                order_id, sku, product.stock + qty, product.stock,
+                order_id,
+                sku,
+                product.stock + qty,
+                product.stock,
             )
         session.commit()
         return True, ""
@@ -80,7 +87,9 @@ def main() -> None:
     channel = connection.channel()
     channel.exchange_declare(exchange="orders", exchange_type="topic")
     result = channel.queue_declare(queue="", exclusive=True)
-    channel.queue_bind(exchange="orders", queue=result.method.queue, routing_key="order.created")
+    channel.queue_bind(
+        exchange="orders", queue=result.method.queue, routing_key="order.created"
+    )
     channel.basic_consume(
         queue=result.method.queue,
         on_message_callback=callback,

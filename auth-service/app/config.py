@@ -5,7 +5,9 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    auth_database_url: str = "postgresql+asyncpg://auth_user:auth_pass@postgres-auth:5432/auth_db"
+    auth_database_url: str = (
+        "postgresql+asyncpg://auth_user:auth_pass@postgres-auth:5432/auth_db"
+    )
     redis_url: str = "redis://redis:6379/0"
 
     jwt_private_key_path: str = "/app/keys/private.pem"
@@ -13,7 +15,7 @@ class Settings(BaseSettings):
     jwt_issuer: str = "auth-service"
     jwt_algorithm: str = "RS256"
 
-    access_token_ttl_seconds: int = 60 * 15        # 15 min
+    access_token_ttl_seconds: int = 60 * 15  # 15 min
     refresh_token_ttl_seconds: int = 60 * 60 * 24 * 7  # 7 días
 
     @field_validator("auth_database_url", mode="before")
